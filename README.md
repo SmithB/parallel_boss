@@ -26,7 +26,7 @@ This will start a job that asks the pboss.py process for a job, and runs that jo
 
 ...which will start ten shell jobs.
 
---To gracefully stop worker jobs, look in the par_run/comms directory.  You'll see a series of directory whose names reflect the hosts running your jobs and pworker.py process numbers.  If you delete one of these, its process will quit when it finishes its current job.  
+--To gracefully stop worker jobs, look in the par_run/comms directory.  You'll see a series of directories whose names reflect the hosts running your jobs, and pworker.py process numbers.  If you delete one of these, its process will quit when it finishes its current job.  
 
 --To gracefully stop the whole queue, delete the par_run/boss_status_xxx_yyy (where xxx_yyy is the hostname and process number of the pboss.py process).  The boss will exit, and will delete the worker subdirectories under par_run/comms.
 
