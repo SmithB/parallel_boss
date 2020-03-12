@@ -1,28 +1,28 @@
 # pboss
 Utility for dispatching jobs across a set of hosts
 
-##To use:
+## To use:
 --Make a file containing a list of commands to run, one per line.  It can be called anything, but queue.txt is a reasonable choice.
 
 --Run pboss.py to setup a directory structure (it makes a par_run directory), and ingest your queue file.  Assuming the lines in the file are shell commands, this would be:
 
->> pboss.py -s queue.txt
+\>\> pboss.py -s queue.txt
 
 --Start the job dispatcher.  Usually, it's a good idea to use the -w flag, which will keep the dispatcher active until all jobs are finished:
 
->> pboss.py -w
+\>\> pboss.py -w
 
 Not much will happen.  
 
 --Now you need to go to a different shell, in the same directory, and start a worker:
 
->> pworker.py
+\>\> pworker.py
 
 This will start a job that asks the pboss.py process for a job, and runs that job in a shell.  When it's done, it will ask for another job.  This can be done in multiple shells, and/or on multiple machines that can see the same directory structure.  Start workers until you run out of computing resources (generally one per available processor thread is a good choice).
 
 -- As an alternative to starting multiple terminal instances in which to run the workers, the run_pworkers script will run the workers in tmux shells.  You can run a ten of them with:
 
->> run_pworkers -s 10
+\>\> run_pworkers -s 10
 
 ...which will start ten shell jobs.
 
