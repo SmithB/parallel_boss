@@ -1,8 +1,11 @@
 #! /usr/bin/env bash
 
+[ -d par_run ] && rm -rf par_run
+
+
 > queue.txt
 for i in {1..8}; do
-    echo "sleeper.py" >> queue.txt
+    echo "./sleeper.py" >> queue.txt
 
 done
 
