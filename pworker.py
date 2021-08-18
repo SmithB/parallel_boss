@@ -7,8 +7,10 @@ this_hostname=os.uname()[1]
 invoke_dir=os.getcwd()
 
 if not os.path.isdir("par_run/comms"):
-    print("Comms dir not found, exiting")
-    exit()
+    print("par_run/comms directory not found, waiting")
+    while not os.path.isdir("par_run/comms"):
+        time.sleep(5)
+
 
 worker_dir="par_run/comms/worker_%s.%s/"%(this_hostname, this_PID)
 comms_to_worker_dir=worker_dir+"/to_worker"  
@@ -73,8 +75,9 @@ while os.path.isdir(comms_to_worker_dir) or comms_count==0:
     print("----  running task %s in directory %s ----" % (running_file, invoke_dir))
     print("----       log file is %s" % log_file)
     print("----       time is %s" % str(datetime.datetime.now()))
-    
-    p=subprocess.Popen(running_file, shell=True, stdout=subprocess.PIPE,  cwd=invoke_dir, stderr=subprocess.STDOUT)
+    my_env=os.environ.copy()
+    my_env['MKL_NUM_THREADS']='1'
+    p=subprocess.Popen(running_file, shell=True, stdout=subprocess.PIPE,  cwd=invoke_dir, stderr=subprocess.STDOUT, env=my_env)
     while True:
         #byte=p.stdout.read(1)
         byte = p.stdout.readline()
