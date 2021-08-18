@@ -94,19 +94,22 @@ def add_file_to_queue(task_list_file, matlab=False, shell=False, csh=False):
         last_file_num=0;
     
     fh=open(task_list_file,'r');
+    add_count=0
     for line in fh:
         last_file_num=last_file_num+1;
         this_file='par_run/queue/task_%d' % last_file_num
         out_file=open(this_file,'w');
-        print("adding %s to queue" % this_file)
+        #print("adding %s to queue" % this_file)
+        add_count +=1
         if shell is True:
-            out_file.write('#! /usr/bin/env sh\n')
+            out_file.write('#! /usr/bin/env bash\n')
         elif csh is True:
             out_file.write('#! /usr/bin/env csh\n')
         out_file.write('%s\n'% line.rstrip());
         out_file.close();
         if shell is True or csh is True:
             os.chmod(this_file, os.stat(this_file).st_mode | stat.S_IEXEC)
+    print(f"added {add_count} files to the queue")
     fh=open('par_run/last_task','w+')
     fh.write('%d\n'% last_file_num)
     fh.close()
