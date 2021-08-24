@@ -11,8 +11,10 @@ import sys
 import time
 proc_num=os.getpid()
 
-for count in range(10):
-    print(f"sleeper: PID={proc_num}, count={count}", flush=True)
-    time.sleep(2)
+sleeper_number=sys.argv[1]
 
-print("sleeper: PID={proc_num}. Done", flush=True)
+for count in range(10):
+    print(f"sleeper number {sleeper_number}: PID={proc_num}, count={count}", flush=True)
+    time.sleep(1)
+
+print(f"sleeper number {sleeper_number}: PID={proc_num}. Done", flush=True)

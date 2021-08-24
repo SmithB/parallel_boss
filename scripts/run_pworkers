@@ -1,0 +1,45 @@
+#! /bin/bash
+
+job_type=$1
+Njobs=$2
+
+session_name=`pwd`
+
+echo "job type is [$job_type]"
+echo "number of jobs is [$Njobs]"
+echo "session name is [$session_name]"
+
+
+session_type='tmux'
+/usr/bin/which -s tmux || session_type='bg'
+
+if [ $session_type == "tmux" ]; then
+    $(tmux list-sessions | grep -q $session_name) || $(tmux new-session -s $session_name -d)
+fi
+
+if [ $job_type == "-s" ] ; then
+    for i in `seq 1 $Njobs`; do
+    	sleep .1
+
+    	if [ $session_type == "tmux" ]; then
+        	echo "       starting shell client:"$i"  in tmux"
+        	tmux new-window 'pworker.py' -t $session_name
+    	else
+        	echo "       starting shell client:"$i" in background"
+        	nohup pworker.py &
+        fi
+    done
+fi
+
+if [ $job_type == "-m" ] ; then
+    for i in `seq 1 $Njobs`; do
+    	sleep 0.1
+    	echo "starting matlab client:"$i
+    	if [ $session_type == "tmux" ]; then
+        	echo "   in tmux"
+        	tmux new-window -t $session_name '\matlab -singleCompThread -nodesktop -nosplash -r "dbstop if error; pworker; exit"'
+        else
+            nohup bash -c '\matlab -singleCompThread -nodesktop -nosplash -r "dbstop if error; pworker; exit" &'
+        fi
+    done
+fi
