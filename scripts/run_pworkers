@@ -11,7 +11,7 @@ echo "session name is [$session_name]"
 
 
 session_type='tmux'
-/usr/bin/which -s tmux || session_type='bg'
+/usr/bin/which tmux || session_type='bg'
 
 if [ $session_type == "tmux" ]; then
     $(tmux list-sessions | grep -q $session_name) || $(tmux new-session -s $session_name -d)
