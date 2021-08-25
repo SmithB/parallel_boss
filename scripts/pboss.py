@@ -74,7 +74,7 @@ def __main__():
     if args.sh_list is not None:
         if not args.quiet:
             print("\t pBoss: adding files from %s to queue in par_run/queue in sh mode.\n" % sys.argv[1])
-        add_files_to_queue(args.shell_list, sh=True)
+        add_files_to_queue(args.sh_list, sh=True)
         if not args.run:
             return
     if args.csh_list is not None:
