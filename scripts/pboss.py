@@ -12,7 +12,7 @@ def setup_directories():
             os.mkdir(thedir)
 
 
-def add_files_to_queue(task_list_file, matlab=False, shell=False, csh=False):
+def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=False):
     if os.path.isfile('par_run/last_task'):
         fh=open('par_run/last_task','r');
         for line in fh:
@@ -30,13 +30,15 @@ def add_files_to_queue(task_list_file, matlab=False, shell=False, csh=False):
         out_file=open(this_file,'w');
         #print("adding %s to queue" % this_file)
         add_count +=1
-        if shell is True:
+        if sh is True:
+            out_file.write('#! /usr/bin/env sh\n')
+        elif bash is True:
             out_file.write('#! /usr/bin/env bash\n')
         elif csh is True:
             out_file.write('#! /usr/bin/env csh\n')
         out_file.write('%s\n'% line.rstrip());
         out_file.close();
-        if shell is True or csh is True:
+        if sh or csh or bash:
             os.chmod(this_file, os.stat(this_file).st_mode | stat.S_IEXEC)
     print(f"added {add_count} files to the queue")
     fh=open('par_run/last_task','w+')
@@ -46,15 +48,16 @@ def add_files_to_queue(task_list_file, matlab=False, shell=False, csh=False):
 
 def __main__():
     parser = argparse.ArgumentParser(description='Start parallel boss (no arguments) or add jobs to the queue (-m or -s options).')
-    parser.add_argument('--matlab_list', '-m', type=str, default=None)
-    parser.add_argument('--shell_list', '-s', type=str, default=None)
-    parser.add_argument('--csh_list', '-c', type=str, default=None)
-    parser.add_argument('--jobs','-j', type=int, default=0)
-    parser.add_argument('--keep_running','-k', action='store_true')
-    parser.add_argument('--run','-r', action='store_true')
-    parser.add_argument('--wait', '-w', action='store_true')
-    parser.add_argument('--preserve','-p', action='store_true')
-    parser.add_argument('--quiet','-Q', action='store_true')
+    parser.add_argument('--matlab_list', '-m', type=str, default=None, help="filename containing matlab jobs")
+    parser.add_argument('--bash_list', '-b', type=str, default=None, help="filename containing bash jobs")
+    parser.add_argument('--sh_list', '-s', type=str, default=None, help="filename containing sh jobs")
+    parser.add_argument('--csh_list', '-c', type=str, default=None, help="filename containing csh jobs")
+    parser.add_argument('--jobs','-j', type=int, default=0, help="number of workers to run")
+    parser.add_argument('--keep_running','-k', action='store_true', help= "if set, pboss will not exit after it runs out of jobs and will wait for more jobs to be added to the queue")
+    parser.add_argument('--run','-r', action='store_true', help="if set, pboss will run (otherwise, jobs are added to the queue, and the process exits" )
+    parser.add_argument('--wait', '-w', action='store_true', help="if set, pboss will wait for all jobs to fninsh before exiting")
+    parser.add_argument('--preserve','-p', action='store_true', help="if set, when pboss exits, the comms directory will remain, so that workers do not exit")
+    parser.add_argument('--quiet','-Q', action='store_true', help="if set, verbose output from pboss is suppressed")
     args=parser.parse_args()
 
     if args.jobs >0 :
@@ -68,22 +71,28 @@ def __main__():
         add_files_to_queue(args.matlab_list, matlab=True)
         if not args.run:# or ( args.jobs is not None ):
                 return
-    if args.shell_list is not None:
+    if args.sh_list is not None:
         if not args.quiet:
-            print("\t pBoss: adding files from %s to queue in par_run/queue in Shell mode.\n" % sys.argv[1])
-        add_files_to_queue(args.shell_list, shell=True)
+            print("\t pBoss: adding files from %s to queue in par_run/queue in sh mode.\n" % sys.argv[1])
+        add_files_to_queue(args.shell_list, sh=True)
         if not args.run:
             return
     if args.csh_list is not None:
         if not args.quiet:
-            print("parallel_boss: adding files from %s to queue in par_run/queue in Shell mode.\n" % sys.argv[1])
+            print("parallel_boss: adding files from %s to queue in par_run/queue in csh mode.\n" % sys.argv[1])
         add_files_to_queue(args.csh_list, csh=True)
+        if not args.run:
+            return
+    if args.bash_list is not None:
+        if not args.quiet:
+            print("parallel_boss: adding files from %s to queue in par_run/queue in bash mode.\n" % sys.argv[1])
+        add_files_to_queue(args.bash_list, bash=True)
         if not args.run:
             return
 
 
     if args.jobs > 0:
-        if args.shell_list is not None or args.csh_list is not None:
+        if args.sh_list is not None or args.csh_list is not None or args.bash_list is not None:
             if not args.quiet:
                 print("starting %d shell jobs" % args.jobs)
             subprocess.call(["run_pworkers", "-s" , str(args.jobs)])
