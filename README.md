@@ -5,9 +5,13 @@ Utility for dispatching jobs across a set of hosts
 --Clone the repository, then cd to the repository directory on your home machine
 
 -- install the script with either:
+
 \>\> python setup.py develop
+
 or
+
 \>\> python setup.py install
+
 If you want to run the script from multiple environments, this will need to be done for each environment separately
 
 ## To use:
