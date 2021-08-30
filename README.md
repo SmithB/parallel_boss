@@ -1,4 +1,4 @@
-# pboss
+# parallel_boss
 Utility for dispatching jobs across a set of hosts
 
 ## To install:
