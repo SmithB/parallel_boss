@@ -2,6 +2,7 @@
 
 job_type=$1
 Njobs=$2
+session_type=$3
 
 session_name=`pwd`
 
@@ -10,8 +11,10 @@ echo "number of jobs is [$Njobs]"
 echo "session name is [$session_name]"
 
 
-session_type='tmux'
-/usr/bin/which tmux || session_type='bg'
+if [ -z $session_type ] ; then
+    session_type='tmux'
+    /usr/bin/which tmux || session_type='bg'
+fi
 
 if [ $session_type == "tmux" ]; then
     $(tmux list-sessions | grep -q $session_name) || $(tmux new-session -s $session_name -d)
