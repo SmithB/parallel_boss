@@ -111,7 +111,7 @@ class pworker(object):
         log_fid.close()
 
         # move the running file to the done file
-        done_file="par_run/done/task_%s_%s_%s.%s"%(task_num, self.hostname, self.PID, task_num)
+        done_file="par_run/done/task_%s_%s_%s.%s"%(task_num, self.hostname, self.PID, proc_count)
         os.rename(running_file, done_file);
         if self.verbose:
             print("------- Finished: %s" % str(datetime.datetime.now()))
