@@ -10,7 +10,6 @@ echo "job type is [$job_type]"
 echo "number of jobs is [$Njobs]"
 echo "session name is [$session_name]"
 
-
 if [ -z $session_type ] ; then
     session_type='tmux'
     /usr/bin/which tmux || session_type='bg'
