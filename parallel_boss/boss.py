@@ -114,6 +114,8 @@ class boss(object):
 
     def run(self):
         self.update_task_list()
+        if not self.quiet:
+            print("\t found %d tasks" % len(self.task_list['not_started']))
         num_running=0
         while os.path.isfile(self.boss_file):
             self.check_for_workers()
