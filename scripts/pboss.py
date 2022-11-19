@@ -12,7 +12,7 @@ def setup_directories():
             os.mkdir(thedir)
 
 
-def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=False):
+def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=False, env=None):
     if os.path.isfile('par_run/last_task'):
         fh=open('par_run/last_task','r');
         for line in fh:
@@ -36,6 +36,9 @@ def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=F
             out_file.write('#! /usr/bin/env bash\n')
         elif csh is True:
             out_file.write('#! /usr/bin/env csh\n')
+        if env is not None:
+            out_file.write("source activate %s\n" % env)
+            
         out_file.write('%s\n'% line.rstrip());
         out_file.close();
         if sh or csh or bash:
@@ -52,6 +55,7 @@ def __main__():
     parser.add_argument('--bash_list', '-b', type=str, default=None, help="filename containing bash jobs")
     parser.add_argument('--sh_list', '-s', type=str, default=None, help="filename containing sh jobs")
     parser.add_argument('--csh_list', '-c', type=str, default=None, help="filename containing csh jobs")
+    parser.add_argument('--environment','-e', type=str, default=None, help="environment that each job will activate")
     parser.add_argument('--jobs','-j', type=int, default=0, help="number of workers to run")
     parser.add_argument('--keep_running','-k', action='store_true', help= "if set, pboss will not exit after it runs out of jobs and will wait for more jobs to be added to the queue")
     parser.add_argument('--run','-r', action='store_true', help="if set, pboss will run (otherwise, jobs are added to the queue, and the process exits" )
@@ -65,6 +69,11 @@ def __main__():
 
     setup_directories()
 
+    # it looks like the environment argument only works in bash mode
+    if args.environment is not None and args.sh_list is not None:
+        args.bash_list=args.sh_list
+        args.sh_list=None
+    
     if args.matlab_list is not None:
         if not args.quiet:
             print("\t pboss: adding files from %s to queue in par_run/queue in Matlab mode.\n" % sys.argv[1])
@@ -74,19 +83,19 @@ def __main__():
     if args.sh_list is not None:
         if not args.quiet:
             print("\t pBoss: adding files from %s to queue in par_run/queue in sh mode.\n" % sys.argv[1])
-        add_files_to_queue(args.sh_list, sh=True)
+        add_files_to_queue(args.sh_list, sh=True, env=args.environment)
         if not args.run:
             return
     if args.csh_list is not None:
         if not args.quiet:
             print("parallel_boss: adding files from %s to queue in par_run/queue in csh mode.\n" % sys.argv[1])
-        add_files_to_queue(args.csh_list, csh=True)
+        add_files_to_queue(args.csh_list, csh=True, env=args.environment)
         if not args.run:
             return
     if args.bash_list is not None:
         if not args.quiet:
             print("parallel_boss: adding files from %s to queue in par_run/queue in bash mode.\n" % sys.argv[1])
-        add_files_to_queue(args.bash_list, bash=True)
+        add_files_to_queue(args.bash_list, bash=True, env=args.environment)
         if not args.run:
             return
 
