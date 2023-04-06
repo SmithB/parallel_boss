@@ -1,0 +1,24 @@
+#! /bin/bash
+
+log_files=`ls par_run/logs/*.log`
+
+[ -d par_run/error_logs ] || mkdir par_run/error_logs
+
+for log_file in $log_files; do
+    #echo $file
+    if $(grep -i -q Error $log_file) || $(grep -i -q "not found" $log_file) ; then
+	echo "---------"
+	echo "log file is $log_file"
+	file=`basename $log_file`
+	task_plus_pid=`echo $file | awk -F. '{print $1}'`
+	done_file=`ls par_run/done/$task_plus_pid*`
+	#done_file=par_run/done/`echo $file | awk 'BEGIN {FS="_"}{print $1"_"$2}'`
+	#done_file=par_run/done/`basename $file .log`
+	echo "done file is $done_file"
+	[ -f $done_file ] && echo "done file is $done_file"
+	out_file=par_run/queue/`echo $file | awk 'BEGIN {FS="_"}{print $1"_"$2}'`
+	echo "out file is $out_file"
+	mv $done_file $out_file
+	mv $log_file par_run/error_logs
+    fi
+ done    

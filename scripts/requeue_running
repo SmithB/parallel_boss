@@ -1,0 +1,25 @@
+#! /bin/bash
+
+
+running_files=`ls par_run/running/*`
+
+log_files=`ls par_run/logs/*.log`
+
+[ -d par_run/error_logs ] || mkdir par_run/error_logs
+
+for running_file in $running_files; do
+    
+    
+    echo "---------"
+    echo $running_file
+    echo "\tlog file is $log_file"
+    task_plus_pid=`basename $running_file`
+
+    log_file=`ls par_run/logs/$task_plus_pid*`
+    echo "\tlog file is $log_file"
+    out_file=par_run/queue/`echo $file | awk 'BEGIN {FS="_"}{print $1"_"$2}'`
+    echo "\tout file is $out_file"
+#	mv $running_file $out_file
+#	mv $log_file par_run/error_logs
+
+done    
