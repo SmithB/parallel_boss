@@ -10,6 +10,7 @@ echo "job type is [$job_type]"
 echo "number of jobs is [$Njobs]"
 echo "session name is [$session_name]"
 
+
 if [ -z $session_type ] ; then
     session_type='tmux'
     /usr/bin/which tmux || session_type='bg'
@@ -17,29 +18,32 @@ fi
 
 if [ $session_type == "tmux" ]; then
     $(tmux list-sessions | grep -q $session_name) || $(tmux new-session -s $session_name -d)
+    last_window=$(tmux list-windows -t $session_name | awk ' END {print $1}' | sed s/://)
+    first_job=$(( last_window+1 ))
+    last_job=$(( $first_job+$Njobs ))
 fi
 
 if [ $job_type == "-s" ] ; then
-    for i in `seq 1 $Njobs`; do
-    	sleep .1
+    for i in `seq $first_job $last_job`; do
+        sleep .1
 
-    	if [ $session_type == "tmux" ]; then
-        	echo "       starting shell client:"$i"  in tmux"
-        	tmux new-window 'pworker.py' -t $session_name
-    	else
-        	echo "       starting shell client:"$i" in background"
-        	nohup pworker.py &
+        if [ $session_type == "tmux" ]; then
+            echo "       starting shell client:"$session_name:$i"  in tmux"
+            tmux new-window  -t $session_name:$i 'pworker.py'
+        else
+            echo "       starting shell client:"$i" in background"
+            nohup pworker.py &
         fi
     done
 fi
 
 if [ $job_type == "-m" ] ; then
     for i in `seq 1 $Njobs`; do
-    	sleep 0.1
-    	echo "starting matlab client:"$i
-    	if [ $session_type == "tmux" ]; then
-        	echo "   in tmux"
-        	tmux new-window -t $session_name '\matlab -singleCompThread -nodesktop -nosplash -r "dbstop if error; pworker; exit"'
+        sleep 0.1
+        echo "starting matlab client:"$i
+        if [ $session_type == "tmux" ]; then
+            echo "   in tmux"
+            tmux new-window -t $session_name '\matlab -singleCompThread -nodesktop -nosplash -r "dbstop if error; pworker; exit"'
         else
             nohup bash -c '\matlab -singleCompThread -nodesktop -nosplash -r "dbstop if error; pworker; exit" &'
         fi
