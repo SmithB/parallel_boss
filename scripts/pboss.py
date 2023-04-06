@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import os, sys, stat, argparse, subprocess
+import os, sys, stat, argparse, subprocess, glob, shutil
 from parallel_boss import boss
 
 
@@ -11,8 +11,7 @@ def setup_directories():
         if not(os.path.isdir(thedir)):
             os.mkdir(thedir)
 
-
-def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=False, env=None):
+def get_last_task():
     if os.path.isfile('par_run/last_task'):
         fh=open('par_run/last_task','r');
         for line in fh:
@@ -21,7 +20,11 @@ def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=F
         fh.close()
     else:
         last_file_num=0;
+    return last_file_num
+            
 
+def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=False, env=None):
+    last_file_num=get_last_task()
     fh=open(task_list_file,'r');
     add_count=0
     for line in fh:
@@ -48,9 +51,23 @@ def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=F
     fh.write('%d\n'% last_file_num)
     fh.close()
 
+def add_glob_to_queue(glob_str):
+    last_file_num=get_last_task()
+    file_list=glob.glob(glob_str)
+    add_count=0
+    for file in file_list:
+        last_file_num += 1
+        this_file='par_run/queue/task_%d' % last_file_num
+        shutil.copyfile(file, this_file)
+        os.chmod(this_file, os.stat(this_file).st_mode | stat.S_IEXEC)
+        add_count += 1
+    print(f"added {add_count} files to the queue")
+    with open('par_run/last_task','w+') as fh:
+        fh.write('%d\n'% last_file_num)
 
 def __main__():
     parser = argparse.ArgumentParser(description='Start parallel boss (no arguments) or add jobs to the queue (-m or -s options).')
+    parser.add_argument('--task_glob', '-g', type=str, default=None, help="directory containing task files")
     parser.add_argument('--matlab_list', '-m', type=str, default=None, help="filename containing matlab jobs")
     parser.add_argument('--bash_list', '-b', type=str, default=None, help="filename containing bash jobs")
     parser.add_argument('--sh_list', '-s', type=str, default=None, help="filename containing sh jobs")
@@ -78,30 +95,31 @@ def __main__():
         if not args.quiet:
             print("\t pboss: adding files from %s to queue in par_run/queue in Matlab mode.\n" % sys.argv[1])
         add_files_to_queue(args.matlab_list, matlab=True)
-        if not args.run:# or ( args.jobs is not None ):
-                return
     if args.sh_list is not None:
         if not args.quiet:
             print("\t pBoss: adding files from %s to queue in par_run/queue in sh mode.\n" % sys.argv[1])
         add_files_to_queue(args.sh_list, sh=True, env=args.environment)
-        if not args.run:
-            return
+
     if args.csh_list is not None:
         if not args.quiet:
             print("parallel_boss: adding files from %s to queue in par_run/queue in csh mode.\n" % sys.argv[1])
         add_files_to_queue(args.csh_list, csh=True, env=args.environment)
-        if not args.run:
-            return
+
     if args.bash_list is not None:
         if not args.quiet:
             print("parallel_boss: adding files from %s to queue in par_run/queue in bash mode.\n" % sys.argv[1])
         add_files_to_queue(args.bash_list, bash=True, env=args.environment)
-        if not args.run:
+
+    if args.task_glob is not None:
+        if not args.quiet:
+            print("parallel_boss: adding files from %s to queue in par_run/queue in bash mode.\n" % args.task_glob)
+        add_glob_to_queue(args.task_glob)
+    for arg in [args.matlab_list, args.sh_list, args.csh_list, args.bash_list, args.task_glob]:
+        if arg is not None and not args.run:
             return
 
-
     if args.jobs > 0:
-        if args.sh_list is not None or args.csh_list is not None or args.bash_list is not None:
+        if args.sh_list is not None or args.csh_list is not None or args.bash_list is not None or args.task_glob is not None:
             if not args.quiet:
                 print("starting %d shell jobs" % args.jobs)
             subprocess.call(["run_pworkers", "-s" , str(args.jobs)])
