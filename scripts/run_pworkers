@@ -10,7 +10,7 @@ echo "job type is [$job_type]"
 echo "number of jobs is [$Njobs]"
 echo "session name is [$session_name]"
 
-if Njobs=='all'; then
+if $Njobs=='all'; then
     Njobs=`lscpu | grep 'CPU(s):' | head -1 | awk '{print $2}'`
 fi
 
@@ -24,7 +24,11 @@ if [ $session_type == "tmux" ]; then
     last_window=$(tmux list-windows -t $session_name | awk ' END {print $1}' | sed s/://)
     first_job=$(( last_window+1 ))
     last_job=$(( $first_job+$Njobs ))
+else
+    first_job=0
+    last_job=$Njobs
 fi
+
 
 if [ $job_type == "-s" ] ; then
     for i in `seq $first_job $last_job`; do
