@@ -98,7 +98,7 @@ class boss(object):
             for to_worker_file in self.outbox:
                 if not os.path.isfile(to_worker_file):
                     self.outbox.remove(to_worker_file)
-            time.sleep(0.1)
+            time.sleep(0.025)
 
     def update_task_list(self):
         task_list=self.task_list
@@ -158,7 +158,7 @@ class boss(object):
                     if not self.quiet:
                         print("have %d tasks"  % len(self.task_list['not_started']))
                 self.respond_to_comms()
-            time.sleep(0.5)
-        print(f"Fille {self.boss_file} has been deleted, exiting")
+            time.sleep(0.05)
+        print(f"Fille {self.boss_file} has been deleted")
         self.cleanup()
         return

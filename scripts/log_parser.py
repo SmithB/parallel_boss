@@ -4,9 +4,7 @@ import glob
 import re
 import json
 import os
-import pandas as pd
 #import matplotlib.pyplot as plt
-import numpy as np
 import sys
 
 
@@ -19,7 +17,6 @@ def get_logs(log_dir):
     file_trace = {}
     xy_exception = {}
     xy_trace = {}
-
 
     for log_file in glob.glob(os.path.join(log_dir,'*.log')):
         trace_line_info  = None
@@ -43,7 +40,7 @@ def get_logs(log_dir):
 
         if trace_line_info['str'] not in file_trace:
             file_trace[trace_line_info['str']]=[]
-            xy_trace[trace_line_info['str']]=[]
+
         file_exception[trace_line_info['exception']] += [log_file]
         file_trace[trace_line_info['str']] += [log_file]
         if this_xy is not None:
@@ -58,7 +55,7 @@ def get_logs(log_dir):
     out['counts']['by_exception']={key:len(file_exception[key]) for key in file_exception}
     out['counts']['by_trace']={key:len(file_trace[key]) for key in file_trace}
     out['by_exception']=file_exception
-    out['by_trace']=xy_trace
+    out['by_trace']=file_trace
     if len(xy_exception) > 0:
         out['xy_by_exception']=xy_exception
         out['xy_by_trace']=xy_trace
@@ -67,7 +64,10 @@ def get_logs(log_dir):
 def main():
             
     par_run_dir=sys.argv[1]
+
     log_dir=os.path.join(par_run_dir,'logs')
+
+    out=get_logs(log_dir)
 
     print('Unique exceptions and counts:')
     for exc, files in out['by_exception'].items():
@@ -76,9 +76,10 @@ def main():
     for tr, files in out['by_trace'].items():
         print(f'\t{tr} : {len(files)}')
 
-    out_file=os.path.join(log_dir,'..','log_summary.json')
+    out_file=os.path.join(par_run_dir, 'log_summary.json')
     with open(out_file,'w') as fh:
         json.dump(out, fh, indent=4)
+
 
 if __name__=='__main__':
     main()
