@@ -10,7 +10,7 @@ echo "job type is [$job_type]"
 echo "number of jobs is [$Njobs]"
 echo "session name is [$session_name]"
 
-if $Njobs=='all'; then
+if [ $Njobs == 'all' ]; then
     Njobs=`lscpu | grep 'CPU(s):' | head -1 | awk '{print $2}'`
 fi
 
