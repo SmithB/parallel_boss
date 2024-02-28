@@ -62,7 +62,7 @@ def get_logs(log_dir):
     return out
 
 def main():
-            
+
     par_run_dir=sys.argv[1]
 
     log_dir=os.path.join(par_run_dir,'logs')
@@ -83,4 +83,3 @@ def main():
 
 if __name__=='__main__':
     main()
-
