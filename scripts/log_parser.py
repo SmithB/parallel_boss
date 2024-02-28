@@ -4,9 +4,7 @@ import glob
 import re
 import json
 import os
-import pandas as pd
 #import matplotlib.pyplot as plt
-import numpy as np
 import sys
 
 
@@ -65,9 +63,11 @@ def get_logs(log_dir):
     return out
 
 def main():
-            
+
     par_run_dir=sys.argv[1]
     log_dir=os.path.join(par_run_dir,'logs')
+
+    out=get_logs(log_dir)
 
     print('Unique exceptions and counts:')
     for exc, files in out['by_exception'].items():
@@ -82,4 +82,3 @@ def main():
 
 if __name__=='__main__':
     main()
-
