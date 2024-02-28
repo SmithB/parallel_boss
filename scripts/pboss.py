@@ -21,7 +21,7 @@ def get_last_task():
     else:
         last_file_num=0;
     return last_file_num
-            
+
 
 def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=False, env=None):
     last_file_num=get_last_task()
@@ -41,7 +41,7 @@ def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=F
             out_file.write('#! /usr/bin/env csh\n')
         if env is not None:
             out_file.write("source activate %s\n" % env)
-            
+
         out_file.write('%s\n'% line.rstrip());
         out_file.close();
         if sh or csh or bash:
@@ -73,6 +73,8 @@ def __main__():
     parser.add_argument('--sh_list', '-s', type=str, default=None, help="filename containing sh jobs")
     parser.add_argument('--csh_list', '-c', type=str, default=None, help="filename containing csh jobs")
     parser.add_argument('--environment','-e', type=str, default=None, help="environment that each job will activate")
+    parser.add_argument('--log', action='store_true')
+    parser.add_argument('--delay', type=float, help="time to wait between subsequent jobs")
     parser.add_argument('--jobs','-j', type=int, default=0, help="number of workers to run")
     parser.add_argument('--keep_running','-k', action='store_true', help= "if set, pboss will not exit after it runs out of jobs and will wait for more jobs to be added to the queue")
     parser.add_argument('--run','-r', action='store_true', help="if set, pboss will run (otherwise, jobs are added to the queue, and the process exits" )
@@ -90,7 +92,7 @@ def __main__():
     if args.environment is not None and args.sh_list is not None:
         args.bash_list=args.sh_list
         args.sh_list=None
-    
+
     if args.matlab_list is not None:
         if not args.quiet:
             print("\t pboss: adding files from %s to queue in par_run/queue in Matlab mode.\n" % sys.argv[1])
@@ -131,7 +133,7 @@ def __main__():
 
     the_boss=boss(preserve=args.preserve, keep_running=args.keep_running,
                   wait_for_workers_to_finish=args.wait,
-                  quiet=args.quiet)
+                  quiet=args.quiet, delay=args.delay, log=args.log)
     the_boss.run()
 
 if __name__ == '__main__':

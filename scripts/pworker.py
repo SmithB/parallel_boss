@@ -29,7 +29,7 @@ class pworker(object):
             log_dir="par_run/worker_logs"
             if not os.path.isdir(log_dir):
                 os.mkdir(log_dir)
-            self.log_handle=open(os.path.join(log_dir, "worker_%s.%s/"%(self.hostname, self.PID)))
+            self.log_handle=open(os.path.join(log_dir, "worker_%s.%s"%(self.hostname, self.PID)),'w', buffering=1)
             self.log('starting')
         if not os.path.isdir(self.worker_dir):
             os.mkdir(self.worker_dir)
@@ -151,8 +151,3 @@ def __main__():
 
 if __name__=='__main__':
     __main__()
-
-
-
-
-

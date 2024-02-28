@@ -46,10 +46,10 @@ if [ $job_type == "-s" ] ; then
 
         if [ $session_type == "tmux" ]; then
             echo "       starting shell client:"$session_name:$i"  in tmux"
-            tmux new-window  -t $session_name:$i 'pworker.py'
+            tmux new-window  -t $session_name:$i 'pworker.py --log'
         else
             echo "       starting shell client:"$i" in background"
-            nohup pworker.py &
+            nohup pworker.py --log &
         fi
     done
 fi
