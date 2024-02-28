@@ -6,7 +6,7 @@ log_files=`ls par_run/logs/*.log`
 
 for log_file in $log_files; do
     #echo $file
-    if $(grep -i -q Error $log_file) || $(grep -i -q "not found" $log_file) ; then
+    if $(grep -i -q Exception $log_file) || $(grep -i -q "not found" $log_file) || $(grep -i -q "killed" $log_file) ; then
 	echo "---------"
 	echo "log file is $log_file"
 	file=`basename $log_file`
