@@ -4,7 +4,6 @@
 #SBATCH --cpus-per-task=20            # Number of cores per MPI task 
 #SBATCH --nodes=1                    # Maximum number of nodes to be allocated
 #SBATCH --time=11:59:00
-#SBATCH --partition=howat,batch
 #SBATCH --mem-per-cpu=1GB
 
 #while [ -d . ] ; do
