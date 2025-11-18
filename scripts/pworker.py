@@ -3,14 +3,14 @@
 import sys, os, time, re, subprocess, datetime, stat
 
 class pworker(object):
-    def __init__(self, log=False):
+    def __init__(self, log=False, old_style=False):
 
         self.verbose=True
         self.retired=False
-
         self.PID=os.getpid()
         self.hostname=os.uname()[1]
         self.invoke_dir=os.getcwd()
+        self.old_style=old_style
 
         if not os.path.isdir("par_run/comms"):
             print("par_run/comms directory not found, waiting")
@@ -23,6 +23,7 @@ class pworker(object):
         self.from_boss_file=self.comms_to_worker_dir+'/request.txt'
         self.to_boss_file=self.comms_to_boss_dir+'/request.txt'
         self.scratch=self.worker_dir+"scratch_from_worker.txt"
+        self.current_log_file=None
 
         self.log_handle=None
         if log:
@@ -42,6 +43,9 @@ class pworker(object):
 
         if not os.path.isdir('par_run/logs'):
             os.mkdir('par_run/logs');
+        if not self.old_style:
+            if not os.path.isdir('par_run/active_logs'):
+                os.mkdir('par_run/active_logs')
 
     def log(self, message):
         if self.log_handle is not None:
@@ -90,21 +94,34 @@ class pworker(object):
     def run_job(self, proc_count, task_file, task_num):
         self.log("starting task_file:"+task_file)
         # move the task file to the running file
-        running_file="par_run/running/task_%s_%s_%s.%s"%(task_num, self.hostname, self.PID, proc_count)
+        if self.old_style:
+            running_file="par_run/running/task_%s_%s_%s.%s"%(task_num, self.hostname, self.PID, proc_count)
+        else:
+            running_file="par_run/running/task_%s" % (task_num)
         os.rename(task_file, running_file)
 
         # make the running file executable
         stats=os.stat(running_file)
         os.chmod(running_file, stats.st_mode | stat.S_IEXEC)
 
-        # creat the log file
-        log_file='par_run/logs/'+os.path.basename(running_file)+'.log';
+        # create the log file
+        if self.old_style:
+            log_file = 'par_run/logs/'+os.path.basename(running_file)+'.log';
+        else:
+            self.current_log_file = 'par_run/active_logs/'+os.path.basename(running_file)+'.log'
+            log_file = self.current_log_file
         log_fid=open(log_file,'wb')
 
         if self.verbose:
             print("----  running task %s in directory %s ----" % (running_file, self.invoke_dir))
             print("----       log file is %s" % log_file)
             print("----       time is %s" % str(datetime.datetime.now()))
+        if not self.old_style:
+            log_fid.write(f'#pworker_hostname: {self.hostname}\n'.encode())
+            log_fid.write(f'#pworker_PID: {self.PID}\n'.encode())
+            log_fid.write(f'#pworker_proc_count: {proc_count}\n'.encode())
+            log_fid.write(f'#pworker_invoke_dir: {self.invoke_dir}\n'.encode())
+            log_fid.flush()
 
         # run the running file
         my_env=os.environ.copy()
@@ -126,11 +143,20 @@ class pworker(object):
         log_fid.close()
 
         # move the running file to the done file
-        done_file="par_run/done/task_%s_%s_%s.%s"%(task_num, self.hostname, self.PID, proc_count)
-        os.rename(running_file, done_file);
+        if self.old_style:
+            done_file="par_run/done/task_%s_%s_%s.%s"%(task_num, self.hostname, self.PID, proc_count)
+        else:
+            done_file = f"par_run/done/{os.path.basename(running_file)}"
+        os.rename(running_file, done_file)
+
+        if not self.old_style:
+            dst_log_file = 'par_run/logs/'+os.path.basename(running_file)+'.log';
+            os.rename(self.current_log_file, dst_log_file)
+
         if self.verbose:
             print("------- Finished: %s" % str(datetime.datetime.now()))
             self.log("finished "+task_file)
+
     def run_loop(self):
         while os.path.isdir(self.comms_to_worker_dir) or self.comms_count==0:
             job_info=self.get_new_job()
@@ -146,7 +172,12 @@ def __main__():
         log=True
     else:
         log=False
-    this_worker = pworker(log=log)
+
+    old_style=False
+    if '--old_style' in sys.argv:
+        old_style=True
+
+    this_worker = pworker(log=log, old_style=old_style)
     this_worker.run_loop()
 
 if __name__=='__main__':
