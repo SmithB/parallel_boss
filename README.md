@@ -11,6 +11,7 @@ Utility for dispatching jobs across a set of hosts
 or
 
 \>\> pip install -e .
+
 If you want to run the script from multiple environments, this will need to be done for each environment separately
 
 ## To use:
