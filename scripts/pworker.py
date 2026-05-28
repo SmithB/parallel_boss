@@ -3,7 +3,7 @@
 import sys, os, time, re, subprocess, datetime, stat
 
 class pworker(object):
-    def __init__(self, log=False, old_style=False):
+    def __init__(self, log=False, old_style=False, conda_env=None):
 
         self.verbose=True
         self.retired=False
@@ -11,6 +11,7 @@ class pworker(object):
         self.hostname=os.uname()[1]
         self.invoke_dir=os.getcwd()
         self.old_style=old_style
+        self.conda_env=conda_env
 
         if not os.path.isdir("par_run/comms"):
             print("par_run/comms directory not found, waiting")
@@ -144,7 +145,11 @@ class pworker(object):
         # run the running file
         my_env=os.environ.copy()
         my_env['MKL_NUM_THREADS']='1'
-        p=subprocess.Popen(running_file, shell=True, stdout=subprocess.PIPE,  cwd=self.invoke_dir, stderr=subprocess.STDOUT, env=my_env)
+        if self.conda_env:
+            cmd = f'conda run -n {self.conda_env} bash {running_file}'
+        else:
+            cmd = running_file
+        p=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,  cwd=self.invoke_dir, stderr=subprocess.STDOUT, env=my_env)
 
         # wait for the task to finish
         while True:
@@ -197,7 +202,20 @@ def __main__():
     if '--old_style' in sys.argv:
         old_style=True
 
-    this_worker = pworker(log=log, old_style=old_style)
+    conda_env=None
+    if '--conda-env' in sys.argv:
+        idx = sys.argv.index('--conda-env')
+        conda_env = sys.argv[idx + 1]
+    else:
+        # fall back to the environment pworker was invoked from
+        env_from_shell = os.environ.get('CONDA_DEFAULT_ENV', '')
+        if env_from_shell and env_from_shell != 'base':
+            conda_env = env_from_shell
+
+    if conda_env:
+        print(f"pworker: running jobs in conda environment '{conda_env}'")
+
+    this_worker = pworker(log=log, old_style=old_style, conda_env=conda_env)
     this_worker.run_loop()
 
 if __name__=='__main__':
