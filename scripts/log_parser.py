@@ -10,14 +10,14 @@ import sys
 
 def get_logs(log_dir):
     tile_re = re.compile('working on .*/E(.*)_N(.*).h5')
-    trace_line_re = re.compile('(File "(.*)", line (\d+), in (\S+))')
+    trace_line_re = re.compile(r'(File "(.*)", line (\d+), in (\S+))')
     error_re = re.compile(r'^((\S+Error): (.*))')
-
+    annon_error_re = re.compile(r'^((\S+)Error)')
+    value_error_re = re.compile(r'ValueError: axis \d+ index \d+ exceeds matrix dimension \d+')
     file_exception = {}
     file_trace = {}
     xy_exception = {}
     xy_trace = {}
-
 
     for log_file in glob.glob(os.path.join(log_dir,'*.log')):
         trace_line_info  = None
@@ -30,18 +30,34 @@ def get_logs(log_dir):
                 m = trace_line_re.search(line)
                 if m is not None:
                     trace_line_info = {'str':m.groups()[0], 'file':m.groups()[1], 'line':m.groups()[2], 'function':m.groups()[3]}
-                m = error_re.search(line)
+                m=annon_error_re.search(line)
                 if m is not None:
                     trace_line_info['exception']=m.groups()[0]
-                    break
+                    m = error_re.search(line)
+                    if m is not None:
+                        trace_line_info['exception']=m.groups()[0]
+                        break
         if trace_line_info is None:
             continue
+        if 'exception' not in trace_line_info:
+            if "Segmentation Falut" in trace_line_info['str']:
+                trace_line_info['exception']="Segmentation Fault"
+            else:
+                trace_line_info['exception'] = "Nonstandard exception: needs special attention"
+                print(f"found a trace that does not include the word 'exception' for log file \n\t {log_file}")
+                print(trace_line_info)
+
+
+        # handle exceptions of the form "ValueError: axis 1 index 2147471304 exceeds matrix dimension 6927 : 1"
+        if value_error_re.search(trace_line_info['exception']) is not None:
+            trace_line_info['exception'] = "ValueError: axis xxx index yyy exceeds matrix dimension zzz"
+
         if trace_line_info['exception'] not in file_exception:
             file_exception[trace_line_info['exception']] = []
 
         if trace_line_info['str'] not in file_trace:
             file_trace[trace_line_info['str']]=[]
-            xy_trace[trace_line_info['str']]=[]
+
         file_exception[trace_line_info['exception']] += [log_file]
         file_trace[trace_line_info['str']] += [log_file]
         if this_xy is not None:
@@ -56,7 +72,7 @@ def get_logs(log_dir):
     out['counts']['by_exception']={key:len(file_exception[key]) for key in file_exception}
     out['counts']['by_trace']={key:len(file_trace[key]) for key in file_trace}
     out['by_exception']=file_exception
-    out['by_trace']=xy_trace
+    out['by_trace']=file_trace
     if len(xy_exception) > 0:
         out['xy_by_exception']=xy_exception
         out['xy_by_trace']=xy_trace
@@ -65,6 +81,7 @@ def get_logs(log_dir):
 def main():
 
     par_run_dir=sys.argv[1]
+
     log_dir=os.path.join(par_run_dir,'logs')
 
     out=get_logs(log_dir)
@@ -76,9 +93,10 @@ def main():
     for tr, files in out['by_trace'].items():
         print(f'\t{tr} : {len(files)}')
 
-    out_file=os.path.join(log_dir,'..','log_summary.json')
+    out_file=os.path.join(par_run_dir, 'log_summary.json')
     with open(out_file,'w') as fh:
         json.dump(out, fh, indent=4)
+
 
 if __name__=='__main__':
     main()
