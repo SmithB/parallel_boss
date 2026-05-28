@@ -6,7 +6,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 # list of all scripts to be included with package
-scripts = [os.path.join('scripts',f) for f in os.listdir('scripts')]
+scripts = [os.path.join('scripts',f) for f in os.listdir('scripts')
+           if os.path.isfile(os.path.join('scripts',f))]
 
 setup(
     name='parallel_boss',
