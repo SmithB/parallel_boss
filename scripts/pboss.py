@@ -13,21 +13,21 @@ def setup_directories():
 
 def get_last_task():
     if os.path.isfile('par_run/last_task'):
-        fh=open('par_run/last_task','r');
-        for line in fh:
-            temp=line;
-        last_file_num=int(temp);
-        fh.close()
+        with open('par_run/last_task','r') as fh:
+            lines=[line.strip() for line in fh if line.strip()]
+        last_file_num=int(lines[-1]) if lines else 0
     else:
-        last_file_num=0;
+        last_file_num=0
     return last_file_num
 
 
 def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=False, env=None):
     last_file_num=get_last_task()
-    fh=open(task_list_file,'r');
+    fh=open(task_list_file,'r')
     add_count=0
     for line in fh:
+        if not line.strip():
+            continue
         last_file_num=last_file_num+1;
         this_file='par_run/queue/task_%d' % last_file_num
         out_file=open(this_file,'w');
@@ -46,6 +46,7 @@ def add_files_to_queue(task_list_file, matlab=False, sh=False, csh=False, bash=F
         out_file.close();
         if sh or csh or bash:
             os.chmod(this_file, os.stat(this_file).st_mode | stat.S_IEXEC)
+    fh.close()
     print(f"added {add_count} files to the queue")
     fh=open('par_run/last_task','w+')
     fh.write('%d\n'% last_file_num)
@@ -95,21 +96,21 @@ def __main__():
 
     if args.matlab_list is not None:
         if not args.quiet:
-            print("\t pboss: adding files from %s to queue in par_run/queue in Matlab mode.\n" % sys.argv[1])
+            print("\t pboss: adding files from %s to queue in par_run/queue in Matlab mode.\n" % args.matlab_list)
         add_files_to_queue(args.matlab_list, matlab=True)
     if args.sh_list is not None:
         if not args.quiet:
-            print("\t pBoss: adding files from %s to queue in par_run/queue in sh mode.\n" % sys.argv[1])
+            print("\t pBoss: adding files from %s to queue in par_run/queue in sh mode.\n" % args.sh_list)
         add_files_to_queue(args.sh_list, sh=True, env=args.environment)
 
     if args.csh_list is not None:
         if not args.quiet:
-            print("parallel_boss: adding files from %s to queue in par_run/queue in csh mode.\n" % sys.argv[1])
+            print("parallel_boss: adding files from %s to queue in par_run/queue in csh mode.\n" % args.csh_list)
         add_files_to_queue(args.csh_list, csh=True, env=args.environment)
 
     if args.bash_list is not None:
         if not args.quiet:
-            print("parallel_boss: adding files from %s to queue in par_run/queue in bash mode.\n" % sys.argv[1])
+            print("parallel_boss: adding files from %s to queue in par_run/queue in bash mode.\n" % args.bash_list)
         add_files_to_queue(args.bash_list, bash=True, env=args.environment)
 
     if args.task_glob is not None:
@@ -129,7 +130,7 @@ def __main__():
             if not args.quiet:
                 print("starting %d matlab jobs" % args.jobs)
                 print(["run_pworkers", "-m "+str(args.jobs)])
-            subprocess.call(["run_pworkers", "-m ", str(args.jobs)])
+            subprocess.call(["run_pworkers", "-m", str(args.jobs)])
 
     the_boss=boss(preserve=args.preserve, keep_running=args.keep_running,
                   wait_for_workers_to_finish=args.wait,

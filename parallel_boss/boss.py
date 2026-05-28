@@ -27,6 +27,7 @@ class boss(object):
         self.delay=delay
         self.log_handle = None
         self.outbox=[]
+        self.initialized=False
         boss_check=glob.glob("par_run/boss_status_*")
         if len(boss_check) > 0:
             print ("boss file %s exists,exiting" % boss_check[0])
@@ -36,10 +37,18 @@ class boss(object):
         fh.close();
         if log:
             self.log_handle=open("par_run/boss_log_%s_%s" %(os.uname()[1], str(os.getpid())), 'w', buffering=1)
+        self.initialized=True
 
     def log(self, message):
         if self.log_handle is not None:
             self.log_handle.write(str(datetime.datetime.now())+':'+message+'\n')
+
+    def write_status(self):
+        tmp = 'par_run/status.tmp'
+        with open(tmp, 'w') as fh:
+            fh.write(f'queue={len(self.task_list["not_started"])}\n')
+            fh.write(f'started={len(self.task_list["started"])}\n')
+        os.rename(tmp, 'par_run/status')
 
     def cleanup(self):
         # cleanup: delete all the comms files so that the workers exit
@@ -48,6 +57,10 @@ class boss(object):
                 shutil.rmtree(comms_dir)
         if os.path.isfile(self.boss_file):
             os.remove(self.boss_file)
+        try:
+            os.remove('par_run/status')
+        except FileNotFoundError:
+            pass
         return
 
     def check_for_workers(self):
@@ -66,6 +79,7 @@ class boss(object):
                     # subtract 1 from the time of the new worker so that when we check it, it will show up as new.
                     self.workers[worker_name]={'to_boss':this_dir+'/to_boss/request.txt',
                          'to_worker':this_dir+'/to_worker/request.txt',
+                         'ack':this_dir+'/to_worker/request_received.txt',
                          'scratch':this_dir+'/scratch.txt'};
         # make sure that there's a comm file for each worker in state
         for worker in list(self.workers.keys()):
@@ -97,9 +111,9 @@ class boss(object):
                     self.log("sending:"+self.workers[this_worker]['to_worker'])
                     with open(self.workers[this_worker]['scratch'],'w') as fid:
                         fid.write('response[%s] %s;\n' % (request_name, this_task))
-                        fid.close()
                     os.rename(self.workers[this_worker]['scratch'], self.workers[this_worker]['to_worker'])
-                    self.outbox += [ self.workers[this_worker]['to_worker']]
+                    self.outbox.append({'request': self.workers[this_worker]['to_worker'],
+                                        'ack':     self.workers[this_worker]['ack']})
                     del self.comms[this_worker]
                     if self.delay is not None:
                         self.log(f'waiting {self.delay} seconds before starting next job')
@@ -109,12 +123,19 @@ class boss(object):
             else:
                 print("Misunderstood communication from %s : %s\n" % (this_worker, self.comms[this_worker]))
 
+    def check_and_clear_acks(self):
+        confirmed = [item for item in self.outbox if os.path.isfile(item['ack'])]
+        for item in confirmed:
+            try:
+                os.remove(item['ack'])
+            except FileNotFoundError:
+                pass
+            self.outbox.remove(item)
+
     def wait_for_workers(self):
         self.log("waiting for workers to take jobs")
         while len(self.outbox) > 0:
-            for to_worker_file in self.outbox:
-                if not os.path.isfile(to_worker_file):
-                    self.outbox.remove(to_worker_file)
+            self.check_and_clear_acks()
             time.sleep(0.025)
         self.log("done waiting for workers")
     def update_task_list(self):
@@ -130,12 +151,17 @@ class boss(object):
                 task_list['not_started'].append(task)
 
     def run(self):
+        if not self.initialized:
+            return
         self.update_task_list()
+        self.write_status()
         if not self.quiet:
             print("\t found %d tasks" % len(self.task_list['not_started']))
         num_running=0
         while os.path.isfile(self.boss_file):
+            self.write_status()
             self.check_for_workers()
+            self.check_and_clear_acks()
             self.check_for_new_comms()
             while len(self.comms) > 0 and os.path.isfile(self.boss_file):
                 if self.comms_updated:
@@ -175,7 +201,7 @@ class boss(object):
                     if not self.quiet:
                         print("have %d tasks"  % len(self.task_list['not_started']))
                 self.respond_to_comms()
-            time.sleep(0.05)
+            time.sleep(0.5)
         print(f"File {self.boss_file} has been deleted")
         self.cleanup()
         return

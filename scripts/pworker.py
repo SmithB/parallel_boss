@@ -17,12 +17,13 @@ class pworker(object):
             while not os.path.isdir("par_run/comms"):
                 time.sleep(1)
 
-        self.worker_dir="par_run/comms/worker_%s.%s/"%(self.hostname, self.PID)
-        self.comms_to_worker_dir=self.worker_dir+"/to_worker"
-        self.comms_to_boss_dir=self.worker_dir+"/to_boss"
-        self.from_boss_file=self.comms_to_worker_dir+'/request.txt'
-        self.to_boss_file=self.comms_to_boss_dir+'/request.txt'
-        self.scratch=self.worker_dir+"scratch_from_worker.txt"
+        self.worker_dir="par_run/comms/worker_%s.%s"%(self.hostname, self.PID)
+        self.comms_to_worker_dir=os.path.join(self.worker_dir, "to_worker")
+        self.comms_to_boss_dir=os.path.join(self.worker_dir, "to_boss")
+        self.from_boss_file=os.path.join(self.comms_to_worker_dir, 'request.txt')
+        self.ack_file=os.path.join(self.comms_to_worker_dir, 'request_received.txt')
+        self.to_boss_file=os.path.join(self.comms_to_boss_dir, 'request.txt')
+        self.scratch=os.path.join(self.worker_dir, "scratch_from_worker.txt")
         self.current_log_file=None
 
         self.log_handle=None
@@ -39,7 +40,9 @@ class pworker(object):
         if not os.path.isdir(self.comms_to_boss_dir):
             os.mkdir(self.comms_to_boss_dir)
 
-        self.comms_count=0;
+        self.comms_count=0
+        self.jobs_done=0
+        self.done_count_file=os.path.join(self.worker_dir, 'done_count')
 
         if not os.path.isdir('par_run/logs'):
             os.mkdir('par_run/logs');
@@ -65,10 +68,16 @@ class pworker(object):
             self.consider_retirement()
             time.sleep(1)
 
-        # read a line from boss response
+        if self.retired:
+            return None
+
+        # read the boss response, delete it immediately (prevents stale re-reads),
+        # then write the ack so the boss knows the message was received
         with open(self.from_boss_file,'r') as fid:
             the_line=fid.readline().rstrip()
         os.remove(self.from_boss_file)
+        with open(self.ack_file,'w') as fid:
+            fid.write('received\n')
         if self.verbose:
             print("parallel_boss sent line [%s]" % the_line)
         self.log(f"received response from boss")
@@ -79,11 +88,20 @@ class pworker(object):
             return None
         proc_count=response_match.group(1)
         task_file=response_match.group(2)
-        if not os.path.isfile(task_file):
-            self.log("Task file %s Does not exist, ignoring request\n" % task_file)
-            print("Task file %s Does not exist, ignoring request\n" % task_file)
+        # retry briefly in case NFS cache hasn't yet made the file visible
+        for _ in range(10):
+            if os.path.isfile(task_file):
+                break
+            time.sleep(0.5)
+        else:
+            self.log("Task file %s not visible after retries, ignoring\n" % task_file)
+            print("Task file %s not visible after retries, ignoring\n" % task_file)
             return None
-        task_num=re.search('task_(\d+)', task_file).group(1)
+        task_match=re.search('task_(\d+)', task_file)
+        if task_match is None:
+            self.log("Could not parse task number from filename: "+task_file)
+            return None
+        task_num=task_match.group(1)
         return [proc_count, task_file, task_num]
 
     def consider_retirement(self):
@@ -160,9 +178,11 @@ class pworker(object):
     def run_loop(self):
         while os.path.isdir(self.comms_to_worker_dir) or self.comms_count==0:
             job_info=self.get_new_job()
-            print("job_info="+str(job_info))
             if job_info is not None:
                 self.run_job(*job_info)
+                self.jobs_done += 1
+                with open(self.done_count_file, 'w') as fh:
+                    fh.write(f'{self.jobs_done}\n')
             self.consider_retirement()
             if self.retired:
                 break
