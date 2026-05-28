@@ -6,12 +6,11 @@ Utility for dispatching jobs across a set of hosts
 
 -- install the script with either:
 
-\>\> python setup.py develop
+\>\> pip install . 
 
 or
 
-\>\> python setup.py install
-
+\>\> pip install -e .
 If you want to run the script from multiple environments, this will need to be done for each environment separately
 
 ## To use:
@@ -46,3 +45,7 @@ This will start a job that asks the pboss.py process for a job, and runs that jo
 --Logging information should end up in the par_run/logs
 
 --You can see what jobs are quened and running in the par_run/queue and par_run/running, and finished jobs are in par_run/done
+
+--If you want an ascii-graphics view of the run status, run:
+
+\>\> pdash.py
