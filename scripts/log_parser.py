@@ -10,7 +10,7 @@ import sys
 
 def get_logs(log_dir):
     tile_re = re.compile('working on .*/E(.*)_N(.*).h5')
-    trace_line_re = re.compile('(File "(.*)", line (\d+), in (\S+))')
+    trace_line_re = re.compile(r'(File "(.*)", line (\d+), in (\S+))')
     error_re = re.compile(r'^((\S+Error): (.*))')
     annon_error_re = re.compile(r'^((\S+)Error)')
     value_error_re = re.compile(r'ValueError: axis \d+ index \d+ exceeds matrix dimension \d+')
