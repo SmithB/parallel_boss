@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import sys, os, time, re, subprocess, datetime, stat
+import sys, os, time, re, subprocess, datetime, stat, json
 
 class pworker(object):
     def __init__(self, log=False, old_style=False, conda_env=None):
@@ -12,6 +12,7 @@ class pworker(object):
         self.invoke_dir=os.getcwd()
         self.old_style=old_style
         self.conda_env=conda_env
+        self.conda_prefix=self._resolve_conda_prefix(conda_env)
 
         if not os.path.isdir("par_run/comms"):
             print("par_run/comms directory not found, waiting")
@@ -50,6 +51,23 @@ class pworker(object):
         if not self.old_style:
             if not os.path.isdir('par_run/active_logs'):
                 os.mkdir('par_run/active_logs')
+
+    def _resolve_conda_prefix(self, conda_env):
+        if not conda_env:
+            return None
+        try:
+            result = subprocess.run(
+                ['conda', 'info', '--json'],
+                capture_output=True, text=True
+            )
+            envs = json.loads(result.stdout).get('envs', [])
+            prefix = next((p for p in envs if os.path.basename(p) == conda_env), None)
+            if prefix is None:
+                print(f"pworker: WARNING: conda environment '{conda_env}' not found")
+            return prefix
+        except Exception as e:
+            print(f"pworker: WARNING: could not resolve conda environment '{conda_env}': {e}")
+            return None
 
     def log(self, message):
         if self.log_handle is not None:
@@ -145,8 +163,8 @@ class pworker(object):
         # run the running file
         my_env=os.environ.copy()
         my_env['MKL_NUM_THREADS']='1'
-        if self.conda_env:
-            cmd = f'conda run -n {self.conda_env} bash {running_file}'
+        if self.conda_prefix:
+            cmd = f'conda run --prefix {self.conda_prefix} bash {running_file}'
         else:
             cmd = running_file
         p=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,  cwd=self.invoke_dir, stderr=subprocess.STDOUT, env=my_env)

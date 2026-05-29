@@ -9,7 +9,14 @@
 #   ./run_env_test.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$SCRIPT_DIR"
+
+# Use scripts directly from the repo so the test works regardless of which
+# conda environment is active (the scripts may only be installed in base).
+PBOSS="python $REPO_ROOT/scripts/pboss.py"
+PWORKER="python $REPO_ROOT/scripts/pworker.py"
+export PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
 CURRENT_ENV="${CONDA_DEFAULT_ENV:-base}"
 N_JOBS=4
@@ -43,7 +50,7 @@ echo "queued $N_JOBS env-check tasks"
 
 # ---- run ----------------------------------------------------------
 # -r = run the boss loop; -w = wait for all running jobs before exiting; -Q = quiet
-pboss.py -r -w -Q > par_run/boss.log 2>&1 &
+$PBOSS -r -w -Q > par_run/boss.log 2>&1 &
 BOSS_PID=$!
 echo "started pboss (PID $BOSS_PID)"
 
@@ -52,7 +59,7 @@ sleep 0.5
 
 # pworker auto-detects CONDA_DEFAULT_ENV from this shell's environment
 for i in $(seq 1 $N_WORKERS); do
-    pworker.py > "par_run/pworker_${i}.log" 2>&1 &
+    $PWORKER > "par_run/pworker_${i}.log" 2>&1 &
 done
 echo "started $N_WORKERS pworkers (env auto-detected as '$CURRENT_ENV')"
 echo ""
