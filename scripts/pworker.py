@@ -186,7 +186,7 @@ class pworker(object):
         my_env=os.environ.copy()
         my_env['MKL_NUM_THREADS']='1'
         if self.conda_prefix:
-            cmd = f'conda run --prefix {self.conda_prefix} bash {running_file}'
+            cmd = f'conda run --no-capture-output --prefix {self.conda_prefix} bash {running_file}'
         elif self.venv:
             cmd = running_file
             my_env['PATH'] = os.path.join(self.venv, 'bin') + os.pathsep + my_env.get('PATH', '')
