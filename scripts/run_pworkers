@@ -4,16 +4,6 @@ job_type=$1
 Njobs=$2
 session_type=$3
 
-# Capture the active conda environment at invocation time, before any tmux
-# windows are opened (which start fresh shells and lose the activation).
-conda_env=${CONDA_DEFAULT_ENV:-}
-if [ -n "$conda_env" ] && [ "$conda_env" != "base" ]; then
-    conda_env_arg="--conda-env $conda_env"
-    echo "conda environment: $conda_env"
-else
-    conda_env_arg=""
-fi
-
 session_name=`pwd`
 
 echo "job type is [$job_type]"
@@ -56,10 +46,10 @@ if [ $job_type == "-s" ] ; then
 
         if [ $session_type == "tmux" ]; then
             echo "       starting shell client:"$session_name:$i"  in tmux"
-            tmux new-window  -t $session_name:$i "pworker.py --log $conda_env_arg"
+            tmux new-window  -t $session_name:$i 'pworker.py --log'
         else
             echo "       starting shell client:"$i" in background"
-            nohup pworker.py --log $conda_env_arg &
+            nohup pworker.py --log &
         fi
     done
 fi

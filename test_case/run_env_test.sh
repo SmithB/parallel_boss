@@ -48,20 +48,28 @@ TASK
 done
 echo "queued $N_JOBS env-check tasks"
 
+# Write worker_config now so pworkers can read it immediately on startup.
+# pboss.py also writes this, but doing it here avoids any startup race.
+if [ -n "$CONDA_DEFAULT_ENV" ] && [ "$CONDA_DEFAULT_ENV" != "base" ]; then
+    echo "CONDA_ENV=$CONDA_DEFAULT_ENV" > par_run/worker_config
+    echo "wrote par_run/worker_config: CONDA_ENV=$CONDA_DEFAULT_ENV"
+elif [ -n "$VIRTUAL_ENV" ]; then
+    echo "VIRTUAL_ENV=$VIRTUAL_ENV" > par_run/worker_config
+    echo "wrote par_run/worker_config: VIRTUAL_ENV=$VIRTUAL_ENV"
+fi
+
 # ---- run ----------------------------------------------------------
 # -r = run the boss loop; -w = wait for all running jobs before exiting; -Q = quiet
 $PBOSS -r -w -Q > par_run/boss.log 2>&1 &
 BOSS_PID=$!
 echo "started pboss (PID $BOSS_PID)"
 
-# Give boss a moment to write its status file before workers try to connect
 sleep 0.5
 
-# pworker auto-detects CONDA_DEFAULT_ENV from this shell's environment
 for i in $(seq 1 $N_WORKERS); do
     $PWORKER > "par_run/pworker_${i}.log" 2>&1 &
 done
-echo "started $N_WORKERS pworkers (env auto-detected as '$CURRENT_ENV')"
+echo "started $N_WORKERS pworkers"
 echo ""
 
 wait $BOSS_PID
@@ -73,8 +81,8 @@ echo "========================================"
 echo "  worker startup messages"
 echo "========================================"
 for log in par_run/pworker_*.log; do
-    msg=$(grep "running jobs in conda" "$log" 2>/dev/null \
-          || echo "(no env message — running without conda env override)")
+    msg=$(grep "running jobs in" "$log" 2>/dev/null \
+          || echo "(no env message — running without env override)")
     echo "  $(basename "$log"): $msg"
 done
 echo ""

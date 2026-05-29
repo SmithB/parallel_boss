@@ -3,7 +3,7 @@
 import sys, os, time, re, subprocess, datetime, stat, json
 
 class pworker(object):
-    def __init__(self, log=False, old_style=False, conda_env=None):
+    def __init__(self, log=False, old_style=False):
 
         self.verbose=True
         self.retired=False
@@ -11,13 +11,22 @@ class pworker(object):
         self.hostname=os.uname()[1]
         self.invoke_dir=os.getcwd()
         self.old_style=old_style
-        self.conda_env=conda_env
-        self.conda_prefix=self._resolve_conda_prefix(conda_env)
 
         if not os.path.isdir("par_run/comms"):
             print("par_run/comms directory not found, waiting")
             while not os.path.isdir("par_run/comms"):
                 time.sleep(1)
+
+        config = self._read_worker_config()
+        self.conda_env = config.get('CONDA_ENV')
+        self.conda_prefix = self._resolve_conda_prefix(self.conda_env) if self.conda_env else None
+        self.venv = config.get('VIRTUAL_ENV')
+        if self.conda_prefix:
+            print(f"pworker: running jobs in conda environment '{self.conda_env}'")
+        elif self.conda_env:
+            print(f"pworker: WARNING: conda environment '{self.conda_env}' not found, running without env override")
+        elif self.venv:
+            print(f"pworker: running jobs in virtual environment '{self.venv}'")
 
         self.worker_dir="par_run/comms/worker_%s.%s"%(self.hostname, self.PID)
         self.comms_to_worker_dir=os.path.join(self.worker_dir, "to_worker")
@@ -51,6 +60,19 @@ class pworker(object):
         if not self.old_style:
             if not os.path.isdir('par_run/active_logs'):
                 os.mkdir('par_run/active_logs')
+
+    def _read_worker_config(self):
+        config_file = 'par_run/worker_config'
+        if not os.path.isfile(config_file):
+            return {}
+        config = {}
+        with open(config_file) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    key, _, value = line.partition('=')
+                    config[key.strip()] = value.strip()
+        return config
 
     def _resolve_conda_prefix(self, conda_env):
         if not conda_env:
@@ -165,6 +187,12 @@ class pworker(object):
         my_env['MKL_NUM_THREADS']='1'
         if self.conda_prefix:
             cmd = f'conda run --prefix {self.conda_prefix} bash {running_file}'
+        elif self.venv:
+            cmd = running_file
+            my_env['PATH'] = os.path.join(self.venv, 'bin') + os.pathsep + my_env.get('PATH', '')
+            my_env['VIRTUAL_ENV'] = self.venv
+            my_env.pop('CONDA_DEFAULT_ENV', None)
+            my_env.pop('CONDA_PREFIX', None)
         else:
             cmd = running_file
         p=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,  cwd=self.invoke_dir, stderr=subprocess.STDOUT, env=my_env)
@@ -211,29 +239,12 @@ class pworker(object):
                 break
 
 def __main__():
-    if '--log' in sys.argv:
-        log=True
-    else:
-        log=False
-
-    old_style=False
-    if '--old_style' in sys.argv:
-        old_style=True
-
-    conda_env=None
-    if '--conda-env' in sys.argv:
-        idx = sys.argv.index('--conda-env')
-        conda_env = sys.argv[idx + 1]
-    else:
-        # fall back to the environment pworker was invoked from
-        env_from_shell = os.environ.get('CONDA_DEFAULT_ENV', '')
-        if env_from_shell and env_from_shell != 'base':
-            conda_env = env_from_shell
-
-    if conda_env:
-        print(f"pworker: running jobs in conda environment '{conda_env}'")
-
-    this_worker = pworker(log=log, old_style=old_style, conda_env=conda_env)
+    import argparse
+    parser = argparse.ArgumentParser(description='Run a parallel_boss worker process.')
+    parser.add_argument('--log', action='store_true', help='write a worker log file to par_run/worker_logs/')
+    parser.add_argument('--old_style', action='store_true', help='use old-style task/log filenames that include hostname and PID')
+    args = parser.parse_args()
+    this_worker = pworker(log=args.log, old_style=args.old_style)
     this_worker.run_loop()
 
 if __name__=='__main__':
