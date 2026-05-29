@@ -11,12 +11,13 @@ def setup_directories():
         if not(os.path.isdir(thedir)):
             os.mkdir(thedir)
 
-def write_worker_config():
+def write_worker_config(conda_env=None):
     config_file = 'par_run/worker_config'
     if os.path.isfile(config_file):
         return
     lines = []
-    conda_env = os.environ.get('CONDA_DEFAULT_ENV', '')
+    if conda_env is None:
+        conda_env = os.environ.get('CONDA_DEFAULT_ENV', '')
     if conda_env and conda_env != 'base':
         lines.append(f'CONDA_ENV={conda_env}\n')
     virtual_env = os.environ.get('VIRTUAL_ENV', '')
@@ -104,7 +105,7 @@ def __main__():
         args.run=True
 
     setup_directories()
-    write_worker_config()
+    write_worker_config(args.environment)
 
     # it looks like the environment argument only works in bash mode
     if args.environment is not None and args.sh_list is not None:
