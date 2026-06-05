@@ -60,6 +60,8 @@ class pworker(object):
         if not self.old_style:
             if not os.path.isdir('par_run/active_logs'):
                 os.mkdir('par_run/active_logs')
+            if not os.path.isdir('par_run/error_logs'):
+                os.mkdir('par_run/error_logs')
 
     def _read_worker_config(self):
         config_file = 'par_run/worker_config'

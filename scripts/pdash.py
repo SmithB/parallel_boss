@@ -97,6 +97,13 @@ def get_stats(par_run_dir):
         except (OSError, ValueError):
             pass
 
+    error_log_files = glob.glob(os.path.join(par_run_dir, 'error_logs/task_*.log'))
+    error_tasks = []
+    for f in error_log_files:
+        m = re.search(r'task_(\d+)', os.path.basename(f))
+        if m:
+            error_tasks.append(m.group(1))
+
     return {
         'queue':        n_queue,
         'running':      len(running_files),
@@ -105,6 +112,7 @@ def get_stats(par_run_dir):
         'boss_running': len(boss_files) > 0,
         'n_workers':    len(worker_dirs),
         'last_task':    last_task,
+        'error_tasks':  error_tasks,
     }
 
 
@@ -160,6 +168,11 @@ def render(stats, interval):
     count_label = f'{done}/{total} ({pct:.0f}%)'
     boss_str    = 'RUNNING' if stats['boss_running'] else 'stopped'
 
+    error_tasks = stats['error_tasks']
+    n_errors    = len(error_tasks)
+    ebar        = host_bar(error_tasks, scale, SUMMARY_BAR_W)
+    error_label = f'{n_errors} error(s)'
+
     divider = '+' + '-' * (BOX_W - 2) + '+'
     rows = []
     rows.append(divider)
@@ -167,6 +180,7 @@ def render(stats, interval):
     rows.append(_row(f"{'Updated: ' + now:^{inner}}"))
     rows.append(divider)
     rows.append(_row(f'[{sbar}] {count_label}'))
+    rows.append(_row(f'[{ebar}] {error_label}'))
     rows.append(_row(f'  Queued: {queue:<8}  Running: {running:<8}  Done: {done}'))
     rows.append(_row(f'  Boss: {boss_str:<14}  Workers online: {stats["n_workers"]}'))
     rows.append(divider)
@@ -185,7 +199,7 @@ def render(stats, interval):
 
     rows.append(divider)
     rows.append(f'  Ctrl+C to exit  |  refreshes every {interval}s'
-                f'  |  = done  # running  - queued  w=workers  r=running')
+                f'  |  = done  # running  - queued  digit=errors  w=workers  r=running')
     return '\n'.join(rows)
 
 
