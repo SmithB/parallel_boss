@@ -30,10 +30,10 @@ setup(
     scripts=shell_scripts,
     entry_points={
         'console_scripts': [
-            'pboss = scripts.pboss:__main__',
-            'pworker = scripts.pworker:__main__',
-            'pdash = scripts.pdash:main',
-            'log_parser = scripts.log_parser:main',
+            'pboss.py = scripts.pboss:__main__',
+            'pworker.py = scripts.pworker:__main__',
+            'pdash.py = scripts.pdash:main',
+            'log_parser.py = scripts.log_parser:main',
         ],
     },
 )
