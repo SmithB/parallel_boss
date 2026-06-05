@@ -210,7 +210,7 @@ class pworker(object):
                 break
         p.wait()
         returncode = p.returncode
-        log_fid.write(f"#job return code: {returncode}")
+        log_fid.write(f"#job return code: {returncode}\n".encode())
         log_fid.close()
 
         # move the running file to the done file
