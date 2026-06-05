@@ -5,9 +5,8 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-# list of all scripts to be included with package
-scripts = [os.path.join('scripts',f) for f in os.listdir('scripts')
-           if os.path.isfile(os.path.join('scripts',f))]
+shell_scripts = ['requeue_errors', 'requeue_running', 'run_pworkers', 'worker_20.sh']
+shell_scripts = [os.path.join('scripts', f) for f in shell_scripts]
 
 setup(
     name='parallel_boss',
@@ -16,7 +15,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='',
-    author='Ben Smith', 
+    author='Ben Smith',
     author_email='besmith@uw.edu',
     license='MIT',
     classifiers=[
@@ -28,5 +27,13 @@ setup(
     ],
     keywords='parallelization',
     packages=find_packages(),
-    scripts=scripts,
+    scripts=shell_scripts,
+    entry_points={
+        'console_scripts': [
+            'pboss = scripts.pboss:__main__',
+            'pworker = scripts.pworker:__main__',
+            'pdash = scripts.pdash:main',
+            'log_parser = scripts.log_parser:main',
+        ],
+    },
 )

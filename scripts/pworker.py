@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import sys, os, time, re, subprocess, datetime, stat, json
+import sys, os, time, re, subprocess, datetime, stat, json, shutil
 
 class pworker(object):
     def __init__(self, log=False, old_style=False):
@@ -96,7 +96,7 @@ class pworker(object):
             self.log_handle.write(str(datetime.datetime.now())+':'+message+'\n')
 
     def get_new_job(self):
-        response_re=re.compile('response\[(\d+)\]\s+(.*);')
+        response_re=re.compile(r'response\[(\d+)\]\s+(.*);')
 
         self.comms_count=self.comms_count+1;
 
@@ -138,7 +138,7 @@ class pworker(object):
             self.log("Task file %s not visible after retries, ignoring\n" % task_file)
             print("Task file %s not visible after retries, ignoring\n" % task_file)
             return None
-        task_match=re.search('task_(\d+)', task_file)
+        task_match=re.search(r'task_(\d+)', task_file)
         if task_match is None:
             self.log("Could not parse task number from filename: "+task_file)
             return None
@@ -209,6 +209,8 @@ class pworker(object):
             else:
                 break
         p.wait()
+        returncode = p.returncode
+        log_fid.write(f"#job return code: {returncode}")
         log_fid.close()
 
         # move the running file to the done file
@@ -219,8 +221,12 @@ class pworker(object):
         os.rename(running_file, done_file)
 
         if not self.old_style:
-            dst_log_file = 'par_run/logs/'+os.path.basename(running_file)+'.log';
+            dst_log_file = 'par_run/logs/'+os.path.basename(running_file)+'.log'
             os.rename(self.current_log_file, dst_log_file)
+
+            if returncode > 0:
+                error_log_file  = 'par_run/error_logs/'+os.path.basename(running_file)+'.log'
+                shutil.copyfile(dst_log_file, error_log_file)
 
         if self.verbose:
             print("------- Finished: %s" % str(datetime.datetime.now()))

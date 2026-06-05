@@ -6,7 +6,7 @@ from parallel_boss import boss
 
 def setup_directories():
     # setup the directories
-    dir_list=['par_run','par_run/queue','par_run/running','par_run/done','par_run/comms', 'par_run/logs']
+    dir_list=['par_run','par_run/queue','par_run/running','par_run/done','par_run/comms', 'par_run/logs', 'par_run/error_logs']
     for thedir in dir_list:
         if not(os.path.isdir(thedir)):
             os.mkdir(thedir)
