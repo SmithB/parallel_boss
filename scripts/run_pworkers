@@ -41,12 +41,12 @@ echo "RUNNING:"
 echo "$job_type $session_type $first_job $last_job"
 
 if [ $job_type == "-s" ] ; then
-    for i in `seq $first_job $last_job`; do
+    for i in `seq 1 $Njobs`; do
         sleep .1
 
         if [ $session_type == "tmux" ]; then
             echo "       starting shell client:"$session_name:$i"  in tmux"
-            tmux new-window  -t $session_name:$i 'pworker.py --log'
+            tmux new-window  -t $session_name 'pworker.py --log'
         else
             echo "       starting shell client:"$i" in background"
             nohup pworker.py --log &
